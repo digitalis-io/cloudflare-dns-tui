@@ -20,6 +20,16 @@
 
 ## Quick Start
 
+**Via Homebrew (from source):**
+
+```bash
+brew install --build-from-source ./cloudflare-dns-tui.rb
+export CLOUDFLARE_API_TOKEN=your_token_here
+cloudflare-dns-tui
+```
+
+**Via Go:**
+
 ```bash
 export CLOUDFLARE_API_TOKEN=your_token_here
 go run ./cmd/cloudflare-dns-tui
