@@ -13,6 +13,10 @@
 
 `cloudflare-dns-tui` is a keyboard-driven terminal application built with [Bubbletea v2](https://charm.land/bubbletea). It lets you list, create, update, and delete DNS records across all your Cloudflare zones without leaving the terminal.
 
+<p align="center">
+  <img src="docs/cloudflare-tui.jpg" alt="cloudflare-dns-tui screenshot" width="800" />
+</p>
+
 ## Requirements
 
 - Go 1.23+
