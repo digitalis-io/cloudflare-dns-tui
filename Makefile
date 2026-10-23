@@ -1,14 +1,18 @@
-.PHONY: build test test-race lint fmt vet tidy cover bench clean help
+.PHONY: build run test test-race lint fmt vet tidy cover bench clean help
 
 BIN_DIR  ?= bin
 PKG       = ./...
+BINARY    = $(BIN_DIR)/cloudflare-dns-tui
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 	  awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-build: ## Compile all packages
-	go build $(PKG)
+build: ## Compile and produce binary at bin/cloudflare-dns-tui
+	go build -o $(BINARY) ./cmd/cloudflare-dns-tui
+
+run: build ## Build and run the TUI (requires CLOUDFLARE_API_TOKEN)
+	$(BINARY)
 
 test: ## Run unit tests
 	go test $(PKG)

@@ -24,3 +24,4 @@ vendor/
 # Env files
 .env
 .env.local
+cloudflare-dns-tui.sh
