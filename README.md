@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://digitalis.io">
-    <img src="https://digitalis.io/wp-content/uploads/2020/06/logo.png" alt="Digitalis.io" width="200" />
+    <img src="https://cdn.prod.website-files.com/68370d67a3c849c28c22f703/68370d67a3c849c28c22f803_digitalis-logo.svg" alt="Digitalis.io" width="200" />
   </a>
 </p>
 
@@ -37,11 +37,14 @@ export CLOUDFLARE_API_TOKEN=your_token_here
 
 | Key | Action |
 |-----|--------|
-| `↑` / `↓` | Navigate records |
-| `Tab` | Switch zone |
-| `n` | Create new record |
+| `↑` / `↓` or `k` / `j` | Navigate records |
+| `←` / `→` or `p` / `n` | Switch zone |
+| `z` | Zone picker (when >3 zones) |
+| `/` | Filter records |
+| `a` | Add new record |
 | `e` | Edit selected record |
 | `d` | Delete selected record |
+| `r` | Reload records |
 | `q` / `Ctrl+C` | Quit |
 
 ## Configuration
