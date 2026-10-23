@@ -4,9 +4,6 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	colorBg       = lipgloss.AdaptiveColor{Light: "#FFFFFF", Dark: "#1A1A2E"}
-	colorBgAlt    = lipgloss.AdaptiveColor{Light: "#F1F5F9", Dark: "#16213E"}
-	colorHeader   = lipgloss.AdaptiveColor{Light: "#1E293B", Dark: "#E2E8F0"}
 	colorMuted    = lipgloss.AdaptiveColor{Light: "#64748B", Dark: "#94A3B8"}
 	colorBorder   = lipgloss.AdaptiveColor{Light: "#CBD5E1", Dark: "#334155"}
 	colorSelected = lipgloss.AdaptiveColor{Light: "#3B82F6", Dark: "#60A5FA"}
@@ -38,7 +35,8 @@ var (
 			Background(lipgloss.AdaptiveColor{Light: "#F8FAFC", Dark: "#0F172A"})
 
 	styleRowSelected = lipgloss.NewStyle().
-				Background(lipgloss.AdaptiveColor{Light: "#DBEAFE", Dark: "#1D3461"}).
+				Background(lipgloss.AdaptiveColor{Light: "#3B82F6", Dark: "#2563EB"}).
+				Foreground(lipgloss.Color("#FFFFFF")).
 				Bold(true)
 
 	styleZoneTab = lipgloss.NewStyle().
@@ -71,6 +69,57 @@ var (
 
 	styleSpinner = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#F38020"))
+
+	styleDialog = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.AdaptiveColor{Light: "#DC2626", Dark: "#F87171"})
+
+	styleZonePickerBox = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#F38020")).
+				Background(lipgloss.AdaptiveColor{Light: "#FFFFFF", Dark: "#1A1A2E"})
+
+	styleZonePickerItem = lipgloss.NewStyle().
+				Foreground(lipgloss.AdaptiveColor{Light: "#334155", Dark: "#CBD5E1"}).
+				Background(lipgloss.AdaptiveColor{Light: "#FFFFFF", Dark: "#1A1A2E"}).
+				PaddingLeft(1)
+
+	styleZonePickerCurrent = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#F38020")).
+				Background(lipgloss.AdaptiveColor{Light: "#FFFFFF", Dark: "#1A1A2E"}).
+				PaddingLeft(1)
+
+	styleZonePickerActive = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Background(lipgloss.Color("#F38020")).
+				Bold(true).
+				PaddingLeft(1)
+
+	styleFormTitle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#FFFFFF")).
+			Background(lipgloss.Color("#F38020")).
+			PaddingLeft(1).
+			PaddingRight(1)
+
+	styleFormLabel = lipgloss.NewStyle().
+			Foreground(colorMuted).
+			PaddingLeft(2)
+
+	styleFormLabelActive = lipgloss.NewStyle().
+				Foreground(colorSelected).
+				Bold(true).
+				PaddingLeft(2)
+
+	styleFormField = lipgloss.NewStyle().
+			Foreground(lipgloss.AdaptiveColor{Light: "#334155", Dark: "#CBD5E1"}).
+			Background(lipgloss.AdaptiveColor{Light: "#F1F5F9", Dark: "#0F172A"}).
+			PaddingLeft(1).PaddingRight(1)
+
+	styleFormFieldActive = lipgloss.NewStyle().
+				Foreground(lipgloss.AdaptiveColor{Light: "#1E293B", Dark: "#F1F5F9"}).
+				Background(lipgloss.AdaptiveColor{Light: "#DBEAFE", Dark: "#1D3461"}).
+				PaddingLeft(1).PaddingRight(1)
 
 	styleProxied = lipgloss.NewStyle().
 			Foreground(colorCFOrange)

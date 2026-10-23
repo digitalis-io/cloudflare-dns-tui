@@ -2,13 +2,19 @@
 package cloudflare
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
 	"time"
 )
+
+// ErrMissingToken is returned when no API token was supplied.
+var ErrMissingToken = errors.New("API token is required")
 
 const defaultBase = "https://api.cloudflare.com/client/v4"
 
@@ -36,12 +42,15 @@ type Client struct {
 }
 
 // NewClient creates a Client with the given API token.
-func NewClient(token string) *Client {
+func NewClient(token string) (*Client, error) {
+	if token == "" {
+		return nil, ErrMissingToken
+	}
 	return &Client{
 		token:   token,
 		baseURL: defaultBase,
 		http:    &http.Client{Timeout: 30 * time.Second},
-	}
+	}, nil
 }
 
 // NewClientWithBase creates a Client with a custom base URL (for testing).
@@ -74,30 +83,110 @@ func (c *Client) Records(ctx context.Context, zoneID string) ([]DNSRecord, error
 	}
 	recs := make([]DNSRecord, 0, len(items))
 	for _, j := range items {
-		ttl := 1
-		if v, ok := j["ttl"].(float64); ok {
-			ttl = int(v)
-		}
-		proxied := false
-		if v, ok := j["proxied"].(bool); ok {
-			proxied = v
-		}
-		recs = append(recs, DNSRecord{
-			ID:      stringField(j, "id"),
-			Type:    stringField(j, "type"),
-			Name:    stringField(j, "name"),
-			Content: stringField(j, "content"),
-			TTL:     ttl,
-			Proxied: proxied,
-		})
+		recs = append(recs, recordFromMap(j))
 	}
 	return recs, nil
 }
 
-func (c *Client) paged(ctx context.Context, path string, query map[string]string) ([]map[string]any, error) {
-	if c.token == "" {
-		return nil, fmt.Errorf("CLOUDFLARE_API_TOKEN is not set")
+// CreateRecord creates a new DNS record in the given zone.
+func (c *Client) CreateRecord(ctx context.Context, zoneID string, rec DNSRecord) (DNSRecord, error) {
+	body, err := json.Marshal(recordToMap(rec))
+	if err != nil {
+		return DNSRecord{}, fmt.Errorf("marshal: %w", err)
 	}
+	result, err := c.mutate(ctx, http.MethodPost, fmt.Sprintf("/zones/%s/dns_records", zoneID), body)
+	if err != nil {
+		return DNSRecord{}, err
+	}
+	return recordFromMap(result), nil
+}
+
+// UpdateRecord replaces a DNS record.
+func (c *Client) UpdateRecord(ctx context.Context, zoneID string, rec DNSRecord) error {
+	body, err := json.Marshal(recordToMap(rec))
+	if err != nil {
+		return fmt.Errorf("marshal: %w", err)
+	}
+	_, err = c.mutate(ctx, http.MethodPatch, fmt.Sprintf("/zones/%s/dns_records/%s", zoneID, rec.ID), body)
+	return err
+}
+
+// DeleteRecord removes a DNS record by ID.
+func (c *Client) DeleteRecord(ctx context.Context, zoneID, recordID string) error {
+	_, err := c.mutate(ctx, http.MethodDelete, fmt.Sprintf("/zones/%s/dns_records/%s", zoneID, recordID), nil)
+	return err
+}
+
+func (c *Client) mutate(ctx context.Context, method, path string, body []byte) (map[string]any, error) {
+	var bodyReader io.Reader
+	if body != nil {
+		bodyReader = bytes.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bodyReader)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	var envelope struct {
+		Success bool           `json:"success"`
+		Errors  []apiError     `json:"errors"`
+		Result  map[string]any `json:"result"`
+	}
+	if decErr := json.NewDecoder(resp.Body).Decode(&envelope); decErr != nil {
+		return nil, fmt.Errorf("decode: %w", decErr)
+	}
+	if !envelope.Success {
+		if len(envelope.Errors) > 0 {
+			return nil, fmt.Errorf("%s", envelope.Errors[0].Message)
+		}
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+	return envelope.Result, nil
+}
+
+func recordFromMap(m map[string]any) DNSRecord {
+	ttl := 1
+	if v, ok := m["ttl"].(float64); ok {
+		ttl = int(v)
+	}
+	proxied := false
+	if v, ok := m["proxied"].(bool); ok {
+		proxied = v
+	}
+	return DNSRecord{
+		ID:      stringField(m, "id"),
+		Type:    stringField(m, "type"),
+		Name:    stringField(m, "name"),
+		Content: stringField(m, "content"),
+		TTL:     ttl,
+		Proxied: proxied,
+	}
+}
+
+func recordToMap(rec DNSRecord) map[string]any {
+	return map[string]any{
+		"type":    rec.Type,
+		"name":    rec.Name,
+		"content": rec.Content,
+		"ttl":     rec.TTL,
+		"proxied": rec.Proxied,
+	}
+}
+
+func (c *Client) paged(ctx context.Context, path string, query map[string]string) ([]map[string]any, error) {
 	var out []map[string]any
 	for page := 1; ; page++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
@@ -118,6 +207,11 @@ func (c *Client) paged(ctx context.Context, path string, query map[string]string
 			return nil, fmt.Errorf("request failed: %w", err)
 		}
 
+		if resp.StatusCode != http.StatusOK {
+			_ = resp.Body.Close()
+			return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+		}
+
 		var body struct {
 			Success    bool             `json:"success"`
 			Errors     []apiError       `json:"errors"`
@@ -125,12 +219,12 @@ func (c *Client) paged(ctx context.Context, path string, query map[string]string
 			ResultInfo *resultInfo      `json:"result_info"`
 		}
 		if decErr := json.NewDecoder(resp.Body).Decode(&body); decErr != nil {
-			resp.Body.Close()
-			return nil, fmt.Errorf("decode response: %w", decErr)
+			_ = resp.Body.Close()
+			return nil, fmt.Errorf("HTTP %d: decode: %w", resp.StatusCode, decErr)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
-		if resp.StatusCode != http.StatusOK || !body.Success {
+		if !body.Success {
 			if len(body.Errors) > 0 {
 				msgs := make([]string, 0, len(body.Errors))
 				for _, e := range body.Errors {

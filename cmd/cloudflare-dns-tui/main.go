@@ -13,7 +13,11 @@ import (
 
 func main() {
 	token := os.Getenv("CLOUDFLARE_API_TOKEN")
-	client := cloudflare.NewClient(token)
+	client, err := cloudflare.NewClient(token)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: set CLOUDFLARE_API_TOKEN: %v\n", err)
+		os.Exit(1)
+	}
 
 	p := tea.NewProgram(ui.New(client))
 	if _, err := p.Run(); err != nil {

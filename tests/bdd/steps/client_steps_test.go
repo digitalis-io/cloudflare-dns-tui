@@ -171,10 +171,6 @@ func (s *suite) theSecondRecordHasProxiedAndTTL(proxied bool, ttl int) error {
 	return nil
 }
 
-func initScenario(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
-	return ctx, nil
-}
-
 func TestBDD(t *testing.T) {
 	s := &suite{}
 
