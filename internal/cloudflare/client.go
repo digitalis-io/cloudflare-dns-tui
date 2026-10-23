@@ -136,16 +136,15 @@ func (c *Client) mutate(ctx context.Context, method, path string, body []byte) (
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-
 	var envelope struct {
 		Success bool           `json:"success"`
 		Errors  []apiError     `json:"errors"`
 		Result  map[string]any `json:"result"`
 	}
 	if decErr := json.NewDecoder(resp.Body).Decode(&envelope); decErr != nil {
+		if resp.StatusCode >= 400 {
+			return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+		}
 		return nil, fmt.Errorf("decode: %w", decErr)
 	}
 	if !envelope.Success {
@@ -187,6 +186,9 @@ func recordToMap(rec DNSRecord) map[string]any {
 }
 
 func (c *Client) paged(ctx context.Context, path string, query map[string]string) ([]map[string]any, error) {
+	if c.token == "" {
+		return nil, ErrMissingToken
+	}
 	var out []map[string]any
 	for page := 1; ; page++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
@@ -207,11 +209,6 @@ func (c *Client) paged(ctx context.Context, path string, query map[string]string
 			return nil, fmt.Errorf("request failed: %w", err)
 		}
 
-		if resp.StatusCode != http.StatusOK {
-			_ = resp.Body.Close()
-			return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
-		}
-
 		var body struct {
 			Success    bool             `json:"success"`
 			Errors     []apiError       `json:"errors"`
@@ -220,7 +217,10 @@ func (c *Client) paged(ctx context.Context, path string, query map[string]string
 		}
 		if decErr := json.NewDecoder(resp.Body).Decode(&body); decErr != nil {
 			_ = resp.Body.Close()
-			return nil, fmt.Errorf("HTTP %d: decode: %w", resp.StatusCode, decErr)
+			if resp.StatusCode != http.StatusOK {
+				return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+			}
+			return nil, fmt.Errorf("decode: %w", decErr)
 		}
 		_ = resp.Body.Close()
 

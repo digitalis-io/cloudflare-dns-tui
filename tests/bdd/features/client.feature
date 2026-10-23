@@ -8,7 +8,7 @@ Feature: Cloudflare API client
   Scenario: Reject empty API token
     Given no API token is set
     When I fetch zones
-    Then I get an error containing "CLOUDFLARE_API_TOKEN is not set"
+    Then I get an error containing "API token is required"
 
   Scenario: Fetch zones across multiple pages
     Given the API has 2 pages of zones

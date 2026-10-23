@@ -31,7 +31,8 @@ func TestModel_QuitOnQ(t *testing.T) {
 func TestModel_QuitOnCtrlC(t *testing.T) {
 	m := New(nil)
 	m.loading = false
-	_, cmd := sendKey(m, '\x03', "")
+	nm, cmd := m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
+	_ = nm
 	if cmd == nil {
 		t.Fatal("want Quit cmd from ctrl+c")
 	}
